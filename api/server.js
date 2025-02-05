@@ -1,13 +1,36 @@
 const path = require('path')
 const express = require('express')
+const session = require('express-session')
+const Store = require('connect-session-knex')(session)  
 const authRouter = require('./auth/auth-router.js')   
-
 const usersRouter = require('./users/users-router.js')
 
 const server = express()
 
+
 server.use(express.static(path.join(__dirname, '../client')))
 server.use(express.json())
+server.use(session({
+  name: 'chocolatechip', // default is connect.sid
+  secret: 'keep it secret', // used to sign the session ID cookie
+  cookie: {
+    maxAge: 1000 * 60 * 60, // 10 minutes
+    secure: false, // true in production
+    httpOnly: false, // true in production
+
+  },
+  resave: false, // default is true
+  saveUninitialized: false, // default is true
+  store: new Store({
+    knex: require('../database/db-config.js'),
+    tablename: 'sessions',
+    sidfieldname: 'sid',
+    createtable: true,
+    clearInterval: 1000 * 60 * 60, // 1 hour
+  })
+}))
+
+
 server.use('/api/auth', authRouter) 
 
 server.use('/api/users', usersRouter)
